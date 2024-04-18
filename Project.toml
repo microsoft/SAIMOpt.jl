@@ -1,15 +1,15 @@
 name = "SAIMOpt"
 uuid = "1b07576f-21f8-4ab0-8f8b-5c1cf22a7bd4"
-authors = ["Christos Gkantsidis <gkantsidis@gmail.com>"]
+authors = ["Christos Gkantsidis <gkantsidis@gmail.com>", "Pedro Maciel Xavier <pedrox@cos.ufrj.br>"]
 version = "0.1.0"
 
 [deps]
-
-[extras]
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
-[targets]
-test = ["Test"]
+MathOptInterface = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
+SAIM = "3ec39246-dd42-411e-9907-e6143582e47b"
+TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 
 [compat]
-julia = "1"
+MathOptInterface = "1"
+TOML = "1"
+SAIM = "0.6"
+julia = "1.9"
