@@ -1,0 +1,15 @@
+name = "SAIMOpt"
+uuid = "1b07576f-21f8-4ab0-8f8b-5c1cf22a7bd4"
+authors = ["Christos Gkantsidis <gkantsidis@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
+
+[compat]
+julia = "1"
