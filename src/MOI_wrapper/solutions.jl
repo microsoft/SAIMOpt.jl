@@ -37,6 +37,10 @@ end
 function MOI.get(optimizer::Optimizer, vp::MOI.VariablePrimal, vi::VI)
     @assert 1 <= vp.result_index <= MOI.get(optimizer, MOI.ResultCount())
 
+    if haskey(optimizer.fixed, vi)
+        return optimizer.fixed[vi]
+    end
+
     yi = optimizer.output["Assignment"][optimizer.variable_map[vi]]
 
     if optimizer.variable_info[vi].type === :binary

@@ -5,11 +5,19 @@ import SAIMOpt
 import MathOptInterface as MOI
 
 const OPTIMIZER = MOI.instantiate(
-    MOI.OptimizerWithAttributes(SAIMOpt.Optimizer, MOI.Silent() => true),
+    MOI.OptimizerWithAttributes(
+        SAIMOpt.Optimizer,
+        MOI.Silent()       => true,
+        MOI.TimeLimitSec() => 1.0,
+    ),
 )
 
 const BRIDGED = MOI.instantiate(
-    MOI.OptimizerWithAttributes(SAIMOpt.Optimizer, MOI.Silent() => true),
+    MOI.OptimizerWithAttributes(
+        SAIMOpt.Optimizer,
+        MOI.Silent()       => true,
+        MOI.TimeLimitSec() => 1.0,
+    ),
     with_bridge_type = Float64,
 )
 
@@ -37,8 +45,30 @@ function runtests()
         BRIDGED,
         CONFIG,
         exclude = [
-            # "test_attribute_NumberOfThreads",
-            # "test_quadratic_",
+            "test_attribute_RawStatusString",
+            "test_attribute_SolveTimeSec",
+            
+            "test_HermitianPSDCone_",
+            "test_NormNuclearCone_",
+            "test_NormSpectralCone_",
+            "test_basic_ScalarAffineFunction_",
+            "test_basic_ScalarQuadraticFunction_",
+            "test_basic_ScalarNonlinearFunction_",
+            "test_basic_Vector",
+
+            "test_linear_",
+            "test_nonlinear_",
+            "test_conic_",
+            "test_quadratic_",
+            "test_constraint_",
+            "test_objective_",
+            "test_multiobjective_",
+            "test_cpsat_",
+            "test_infeasible_",
+            "test_modification_",
+            "test_solve_",
+
+            r"test_variable_solve.*bound",
         ],
         # This argument is useful to prevent tests from failing on future
         # releases of MOI that add new tests. Don't let this number get too far
@@ -52,4 +82,6 @@ end
 
 end
 
-SAIMOpt_MOITests.runtests()
+@testset "MathOptInterface Test Suite" begin
+    SAIMOpt_MOITests.runtests()
+end

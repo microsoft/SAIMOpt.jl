@@ -149,6 +149,14 @@ function MOI.supports(::Optimizer, ::MOI.RelativeGapTolerance)
     return false
 end
 
+function MOI.supports(::Optimizer, ::MOI.AbstractModelAttribute)
+    return false
+end
+
+function MOI.supports(::Optimizer, ::MOI.AbstractOptimizerAttribute)
+    return false
+end
+
 abstract type SAIMAttribute <: MOI.AbstractOptimizerAttribute end
 
 function MOI.supports(::Optimizer, ::SAIMAttribute)

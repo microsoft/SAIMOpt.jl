@@ -6,7 +6,7 @@ The SAIM optimizer will accept problems in the QUMO format:
 
 ```math
 \begin{array}{rll}
-    \min | \max   & \mathbf{z}' \mathbf{Q}\, \mathbf{z} + \mathbf{z}' \mathbf{\ell} + c & \\
+    \min | \max   & \frac{1}{2} \mathbf{z}' \mathbf{Q}\, \mathbf{z} + \mathbf{z}' \mathbf{\ell} + c & \\
     \textrm{s.t.} & \mathbf{z} = [\mathbf{x}, \mathbf{y}]                             & \\
                   & \mathbf{x} \in \{0, 1\}^{m}                                     & \\
                   & \mathbf{y} \in [-1, 1]^{n}    & \\
@@ -23,7 +23,7 @@ leading to the more general form
 
 ```math
 \begin{array}{rll}
-    \min | \max   & \mathbf{z}' \mathbf{Q}\, \mathbf{z} + \mathbf{z}' \mathbf{\ell} + c & \\
+    \min | \max   & \frac{1}{2} \mathbf{z}' \mathbf{Q}\, \mathbf{z} + \mathbf{z}' \mathbf{\ell} + c & \\
     \textrm{s.t.} &  \mathbf{z} = [\mathbf{x}, \mathbf{y}]                             & \\
                   & \mathbf{x} \in \{0, 1\}^{m}                                     & \\
                   & \mathbf{y} \in [\mathbf{l}, \mathbf{u}] \subset \mathbb{R}^{n}    & \\
