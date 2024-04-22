@@ -1,5 +1,3 @@
-include("variables.jl")
-
 """
     Optimizer{T} <: MOI.AbstractOptimizer
 
@@ -33,7 +31,7 @@ mutable struct Optimizer{T} <: MOI.AbstractOptimizer
     aim_attributes::Dict{Symbol,Any}
 
     variable_map::Dict{VI,Int}
-    variable_info::Dict{VI,Variable{T}}
+    variable_info::VariableInfo{T}
 
     fixed::Dict{VI,T}
 
@@ -66,6 +64,7 @@ mutable struct Optimizer{T} <: MOI.AbstractOptimizer
 end
 
 function MOI.empty!(optimizer::Optimizer{T}) where {T}
+    optimizer.sense      = SAIM.Minimization
     optimizer.quadratic  = Matrix{T}(undef, 0, 0)
     optimizer.linear     = nothing
     optimizer.offset     = zero(T)
@@ -98,11 +97,13 @@ include("objective.jl")
 include("constraints.jl")
 include("solutions.jl")
 
-function MOI.copy_to(optimizer::Optimizer{T}, model::MOI.ModelLike) where {T}
-    index_map = MOIU.IndexMap()
-
+function _copy_attributes!(optimizer, model)
     # Copy attributes
     for attr in MOI.get(model, MOI.ListOfModelAttributesSet())
+        if attr isa MOI.ObjectiveFunction
+            continue
+        end
+
         if MOI.supports(optimizer, attr)
             MOI.set(optimizer, attr, MOI.get(model, attr))
         else
@@ -120,6 +121,10 @@ function MOI.copy_to(optimizer::Optimizer{T}, model::MOI.ModelLike) where {T}
 
     # Copy variable attributes
     for attr in MOI.get(model, MOI.ListOfVariableAttributesSet())
+        if attr isa MOI.VariableName
+            continue
+        end
+
         if MOI.supports(optimizer, attr, VI)
             for vi in MOI.get(model, MOI.ListOfVariablesWithAttributeSet(attr))
                 MOI.set(optimizer, attr, vi, MOI.get(model, attr, vi))
@@ -142,7 +147,14 @@ function MOI.copy_to(optimizer::Optimizer{T}, model::MOI.ModelLike) where {T}
         end
     end
 
-    # Parse model
+    return nothing
+end
+
+function MOI.copy_to(optimizer::Optimizer{T}, model::MOI.ModelLike) where {T}
+    index_map = MOIU.IndexMap()
+
+    _copy_attributes!(optimizer, model)
+
     for (F, S) in MOI.get(model, MOI.ListOfConstraintTypesPresent())
         if !MOI.supports_constraint(optimizer, F, S)
             error("Unsupported constraint type: $F ∈ $S")
@@ -166,6 +178,7 @@ function MOI.copy_to(optimizer::Optimizer{T}, model::MOI.ModelLike) where {T}
         @assert !haskey(optimizer.variable_info, vi) || optimizer.variable_info[vi].type === :continuous
 
         optimizer.variable_info[vi] = Variable{T}(:continuous; lower = si.lower, upper = si.upper)
+
         index_map[ci] = ci
     end
 
@@ -176,10 +189,17 @@ function MOI.copy_to(optimizer::Optimizer{T}, model::MOI.ModelLike) where {T}
 
         @assert !haskey(optimizer.variable_info, vi) || optimizer.variable_info[vi].type === :continuous || si.lower <= zero(T)
 
-        optimizer.variable_info[vi] = if haskey(optimizer.variable_info, vi)
-            Variable{T}(:continuous; lower = si.lower, upper = optimizer.variable_info[vi].upper)
-        else
-            Variable{T}(:continuous; lower = si.lower)
+        let v = if haskey(optimizer.variable_info, vi)
+                Variable{T}(:continuous; lower = si.lower, upper = optimizer.variable_info[vi].upper)
+            else
+                Variable{T}(:continuous; lower = si.lower)
+            end
+
+            if v.lower == v.upper # Fixed variable
+                optimizer.fixed[vi] = v.lower
+            end
+
+            optimizer.variable_info[vi] = v
         end
 
         index_map[ci] = ci
@@ -192,12 +212,19 @@ function MOI.copy_to(optimizer::Optimizer{T}, model::MOI.ModelLike) where {T}
 
         @assert !haskey(optimizer.variable_info, vi) || optimizer.variable_info[vi].type === :continuous || si.upper >= one(T)
 
-        optimizer.variable_info[vi] = if haskey(optimizer.variable_info, vi)
-            Variable{T}(:continuous; lower = optimizer.variable_info[vi].lower, upper = si.upper)
-        else
-            Variable{T}(:continuous; upper = si.upper)
-        end
+        let v = if haskey(optimizer.variable_info, vi)
+                Variable{T}(:continuous; lower = optimizer.variable_info[vi].lower, upper = si.upper)
+            else
+                Variable{T}(:continuous; upper = si.upper)
+            end
 
+            if v.lower == v.upper # Fixed variable
+                optimizer.fixed[vi] = v.lower
+            end
+
+            optimizer.variable_info[vi] = v
+        end
+        
         index_map[ci] = ci
     end
 
@@ -221,7 +248,7 @@ function MOI.copy_to(optimizer::Optimizer{T}, model::MOI.ModelLike) where {T}
     # Fixed variables are not included in the variable list, so they won't get an index
     variable_list = sort!(
         filter(vi -> !haskey(optimizer.fixed, vi), collect(keys(optimizer.variable_info)));
-        by = (vi -> vi.value)
+        by = (vi -> (optimizer.variable_info[vi].type === :continuous, vi.value))
     )
 
     optimizer.variable_map  = Dict{VI,Int}(vi => i for (i, vi) in enumerate(variable_list))
@@ -231,188 +258,102 @@ function MOI.copy_to(optimizer::Optimizer{T}, model::MOI.ModelLike) where {T}
     let F = MOI.get(model, MOI.ObjectiveFunctionType())
         f = MOI.get(model, MOI.ObjectiveFunction{F}())
 
-        quadratic, linear, offset = _parse_objective(
+        Q, ℓ, c = _parse_objective(
             f,
             optimizer.variable_map,
-            optimizer.variable_info,
             optimizer.fixed,
         )
 
-        optimizer.quadratic = quadratic
-        optimizer.linear    = linear
-        optimizer.offset    = offset[]
+        A, b = _scaling(optimizer.variable_info, optimizer.variable_map)
+
+        optimizer.quadratic = A' * Q * A
+        optimizer.linear    = 2 * A * Q * b + A * ℓ
+        optimizer.offset    = c + b' * Q * b + ℓ' * b
     end
 
     return index_map
 end
 
-function _parse_objective(vi::VI, vmap::Dict{VI,Int}, ::Dict{VI,Variable{T}}, fixed::Dict{VI,T}) where {T}
+function _parse_objective(vi::VI, vmap::Dict{VI,Int}, fixed::Dict{VI,T}) where {T}
     n = length(vmap)
 
-    quadratic = zeros(T, n, n)
-    linear    = zeros(T, n)
-    offset    = Ref{T}(zero(T))
+    Q = zeros(T, n, n)
+    ℓ = zeros(T, n)
+    c = zero(T)
 
     if haskey(fixed, vi)
-        offset[] += fixed[vi]
+        c += fixed[vi]
     else
-        linear[vmap[vi]] = 1.0
+        ℓ[vmap[vi]] = one(T)
     end
 
-    return (quadratic, linear, offset)
-end
-
-function _add_scaled_variable!(
-    ℓ::Vector{T},
-    c::Ref{T},
-    i::Integer,
-    l::T,
-    u::T,
-    a::T,
-) where {T}
-    α = u + l
-    β = u - l
-
-    ℓ[i] += 2 * a / β
-    c[]  -= α * a / β
-
-    return nothing
-end
-
-function _add_scaled_variable!(
-    Q::Matrix{T},
-    ℓ::Vector{T},
-    c::Ref{T},
-    i::Integer,
-    li::T,
-    ui::T,
-    j::Integer,
-    lj::T,
-    uj::T,
-    aij::T,
-) where {T}
-    αi = ui + li
-    αj = uj + lj
-
-    βij = (ui - li) * (uj - lj)
-
-    if i == j
-        Q[i, j] += 2 * aij / βij
-    else
-        Q[i, j] += 4 * aij / βij
-    end
-
-    ℓ[i] -= 2 * aij * αj / βij
-    ℓ[j] -= 2 * aij * αi / βij
-
-    c[] += aij * αi * αj / βij
-
-    return nothing
-
+    return (Q, ℓ, c)
 end
 
 function _parse_objective(
     f::SAF{T},
     vmap::Dict{VI,Int},
-    info::Dict{VI,Variable{T}},
     fixed::Dict{VI,T},
 ) where {T}
     n = length(vmap)
 
-    quadratic = zeros(T, n, n)
-    linear    = zeros(T, n)
-    offset    = Ref{T}(f.constant)
+    Q = zeros(T, n, n)
+    ℓ = zeros(T, n)
+    c = zero(T)
 
     for term in f.terms
         vi = term.variable
+        ci = term.coefficient
 
         if haskey(fixed, vi)
-            offset[] += fixed[vi] * term.coefficient
+            c += ci * fixed[vi]
         else
-            _add_scaled_variable!(
-                linear,
-                offset,
-                vmap[vi],
-                info[vi].lower,
-                info[vi].upper,
-                term.coefficient,
-            )
+            ℓ[vmap[vi]] = ci
         end
     end
 
-    return (quadratic, linear, offset)
+    return (Q, ℓ, c)
 end
 
 function _parse_objective(
     f::SQF{T},
     vmap::Dict{VI,Int},
-    info::Dict{VI,Variable{T}},
     fixed::Dict{VI,T},
 ) where {T}
     n = length(vmap)
 
-    quadratic = zeros(T, n, n)
-    linear    = zeros(T, n)
-    offset    = Ref{T}(f.constant)
+    Q = zeros(T, n, n)
+    ℓ = zeros(T, n)
+    c = f.constant
 
     for term in f.affine_terms
         vi = term.variable
+        li = term.coefficient
 
         if haskey(fixed, vi)
-            offset[] += fixed[vi] * term.coefficient
+            c += li * fixed[vi]
         else
-            _add_scaled_variable!(
-                linear,
-                offset,
-                vmap[vi],
-                info[vi].lower,
-                info[vi].upper,
-                term.coefficient,
-            )
+            ℓ[vmap[vi]] += li
         end
     end
 
     for term in f.quadratic_terms
-        vi = term.variable_1
-        vj = term.variable_2
+        vi  = term.variable_1
+        vj  = term.variable_2
+        qij = term.coefficient
 
         if haskey(fixed, vi) && haskey(fixed, vj)
-            offset[] += fixed[vi] * fixed[vj] * term.coefficient
-        elseif haskey(fixed, vj)
-            _add_scaled_variable!(
-                linear,
-                offset,
-                vmap[vi],
-                info[vi].lower,
-                info[vi].upper,
-                term.coefficient * fixed[vj],
-            )
+            c += qij * fixed[vi] * fixed[vj]
         elseif haskey(fixed, vi)
-            _add_scaled_variable!(
-                linear,
-                offset,
-                vmap[vj],
-                info[vj].lower,
-                info[vj].upper,
-                term.coefficient * fixed[vi],
-            )
+            ℓ[vmap[vj]] += qij * fixed[vi]
+        elseif haskey(fixed, vj)
+            ℓ[vmap[vi]] += qij * fixed[vj]
         else
-            _add_scaled_variable!(
-                quadratic,
-                linear,
-                offset,
-                vmap[vi],
-                info[vi].lower,
-                info[vi].upper,
-                vmap[vj],
-                info[vj].lower,
-                info[vj].upper,
-                term.coefficient,
-            )
+            Q[vmap[vi], vmap[vj]] += qij
         end
     end
 
-    return (quadratic, linear, offset)
+    return (Q, ℓ, c)
 end
 
 function MOI.optimize!(optimizer::Optimizer{T}) where {T}
@@ -422,8 +363,8 @@ function MOI.optimize!(optimizer::Optimizer{T}) where {T}
 
     optimizer.output = SAIM.API.SolverAPI.compute_qumo(
         optimizer.sense,
-        optimizer.quadratic,
-        optimizer.linear,
+        -optimizer.quadratic,
+        -optimizer.linear,
         optimizer.continuous,
         seed,
         time_limit;

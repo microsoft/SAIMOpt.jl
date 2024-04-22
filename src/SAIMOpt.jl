@@ -5,6 +5,8 @@ import SAIM
 import MathOptInterface as MOI
 import MathOptInterface: is_empty, empty!, optimize!
 
+using LinearAlgebra
+
 const __PROJECT__ = abspath(@__DIR__, "..")
 const __VERSION__ = get(TOML.parsefile(joinpath(__PROJECT__, "Project.toml")), "version", nothing)
 
@@ -19,6 +21,7 @@ const SAF{T}  = MOI.ScalarAffineFunction{T}
 const SQT{T}  = MOI.ScalarQuadraticTerm{T}
 const SQF{T}  = MOI.ScalarQuadraticFunction{T}
 
+include("variables/variables.jl")
 include("MOI_wrapper/MOI_wrapper.jl")
 
 end # module SAIMOpt

@@ -18,6 +18,10 @@ function MOI.set(optimizer::Optimizer, ::MOI.ObjectiveSense, value::MOI.Optimiza
     return nothing
 end
 
+function MOI.supports(::Optimizer, ::MOI.ObjectiveSense)
+    return true
+end
+
 function MOI.supports(::Optimizer, ::MOI.ObjectiveFunction{VI})
     return true
 end

@@ -21,6 +21,10 @@ struct Variable{T}
     end
 end
 
+const VariableInfo{T} = Dict{VI,Variable{T}}
+
 function is_bounded(v::Variable)
     return !isnothing(v.lower) && !isnothing(v.upper)
 end
+
+include("scaling.jl")

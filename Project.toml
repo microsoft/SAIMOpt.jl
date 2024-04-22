@@ -4,12 +4,13 @@ authors = ["Christos Gkantsidis <gkantsidis@gmail.com>", "Pedro Maciel Xavier <p
 version = "0.1.0"
 
 [deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MathOptInterface = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
 SAIM = "3ec39246-dd42-411e-9907-e6143582e47b"
 TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 
 [compat]
 MathOptInterface = "1"
-TOML = "1"
 SAIM = "0.6"
+TOML = "1"
 julia = "1.9"
