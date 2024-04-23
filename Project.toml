@@ -1,6 +1,6 @@
 name = "SAIMOpt"
 uuid = "1b07576f-21f8-4ab0-8f8b-5c1cf22a7bd4"
-authors = ["Christos Gkantsidis <gkantsidis@gmail.com>", "Pedro Maciel Xavier <pedrox@cos.ufrj.br>"]
+authors = ["Christos Gkantsidis <chrisgk@microsoft.com>", "Pedro Maciel Xavier <t-pedroma@microsoft.com>"]
 version = "0.1.0"
 
 [deps]
