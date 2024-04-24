@@ -1,4 +1,4 @@
-# 
+#
 
 raw"""
     _scaling(l::V, u::V, L::V, U::V) where {T,V<:AbstractVector{T}}
@@ -27,6 +27,15 @@ Therfore, the linear transformation ``\mathbf{Y} = \mathbf{A} \mathbf{y} + \math
 
 """
 function _scaling(l::V, u::V, L::V, U::V) where {T,V<:AbstractVector{T}}
+    #=
+    We only need that `u .!= l`. If `u .== l`, then the best is to simplify the problem,
+    but this should not happen here.
+    In principle, we could allow `u_i < l_i` or `U_i < L_i`, for some i's,
+    but this sounds counter-intuitive.
+    =#
+    @assert all(u .> l)
+    @assert all(U .> L)
+
     v = (U - L) ./ (u - l)
     A = Diagonal(v)
     b = L - l .* v
