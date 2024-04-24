@@ -364,18 +364,22 @@ function MOI.optimize!(optimizer::Optimizer{T}) where {T<:Real}
     num_type   = MOI.get(optimizer, SAIMOpt.NumericType())
 
     if use_gpu
-        if !SAIM.is_gpu_functional()
-            @warn "GPU is not functional, falling back to CPU"
+        if SAIM.is_gpu_functional()
+            if num_type === Float64
+                @warn "Changing 'numeric_type' to Float32 to run on the GPU"
+                num_type = Float32
+            end
+
+            SAIM.Solver.SetDefaultBackEndToGpu()
         else
-            @assert num_type === Float32 # Will some of them support Float64?
+            error("GPU is not functional")
         end
+    else # !use_gpu
+        SAIM.Solver.SetDefaultBackEndToCpu()
     end
 
-    quadratic = similar(optimizer.quadratic, num_type)
-    linear    = similar(optimizer.linear, num_type)
-
-    @. quadratic = -optimizer.quadratic
-    @. linear    = -optimizer.linear
+    quadratic = convert.(num_type, -optimizer.quadratic)
+    linear    = convert.(num_type, -optimizer.linear)
 
     output = SAIM.API.SolverAPI.compute_qumo(
         optimizer.sense,
