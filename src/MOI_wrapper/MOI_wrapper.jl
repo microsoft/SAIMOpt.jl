@@ -356,20 +356,45 @@ function _parse_objective(
     return (Q, ℓ, c)
 end
 
-function MOI.optimize!(optimizer::Optimizer{T}) where {T}
+function MOI.optimize!(optimizer::Optimizer{T}) where {T<:Real}
     seed       = something(MOI.get(optimizer, SAIMOpt.Seed()), trunc(Int, time()))
     time_limit = trunc(Int, something(MOI.get(optimizer, MOI.TimeLimitSec()), 10.0))
     work_dir   = MOI.get(optimizer, SAIMOpt.WorkDir())
+    use_gpu    = MOI.get(optimizer, SAIMOpt.UseGPU())
+    num_type   = MOI.get(optimizer, SAIMOpt.NumericType())
 
-    optimizer.output = SAIM.API.SolverAPI.compute_qumo(
+    if use_gpu
+        if !SAIM.is_gpu_functional()
+            @warn "GPU is not functional, falling back to CPU"
+        else
+            @assert num_type === Float32 # Will some of them support Float64?
+        end
+    end
+
+    quadratic = similar(optimizer.quadratic, num_type)
+    linear    = similar(optimizer.linear, num_type)
+
+    @. quadratic = -optimizer.quadratic
+    @. linear    = -optimizer.linear
+
+    output = SAIM.API.SolverAPI.compute_qumo(
         optimizer.sense,
-        -optimizer.quadratic,
-        -optimizer.linear,
+        quadratic,
+        linear,
         optimizer.continuous,
         seed,
         time_limit;
         work_dir,
     )
+
+    optimizer.output = if T === num_type
+        output
+    else
+        Dict(
+            "Objective"  => convert(T, output["Objective"]),
+            "Assignment" => convert.(T, output["Assignment"]),
+        )
+    end
 
     return nothing
 end

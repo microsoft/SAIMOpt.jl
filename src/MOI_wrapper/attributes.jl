@@ -93,11 +93,31 @@ end
 
 
 function MOI.get(optimizer::Optimizer, attr::MOI.RawOptimizerAttribute)
-    return optimizer.raw_attributes[attr.name]
+    if attr.name == "seed"
+        return MOI.get(optimizer, SAIMOpt.Seed())
+    elseif attr.name == "work_dir"
+        return MOI.get(optimizer, SAIMOpt.WorkDir())
+    elseif attr.name == "use_gpu"
+        return MOI.get(optimizer, SAIMOpt.UseGPU())
+    elseif attr.name == "numeric_type"
+        return MOI.get(optimizer, SAIMOpt.NumericType())
+    else
+        return optimizer.raw_attributes[attr.name]
+    end
 end
 
 function MOI.set(optimizer::Optimizer, attr::MOI.RawOptimizerAttribute, value::Any)
-    optimizer.raw_attributes[attr.name] = value
+    if attr.name == "seed"
+        MOI.set(optimizer, SAIMOpt.Seed(), value)
+    elseif attr.name == "work_dir"
+        MOI.set(optimizer, SAIMOpt.WorkDir(), value)
+    elseif attr.name == "use_gpu"
+        MOI.set(optimizer, SAIMOpt.UseGPU(), value)
+    elseif attr.name == "numeric_type"
+        MOI.set(optimizer, SAIMOpt.NumericType(), value)
+    else
+        optimizer.raw_attributes[attr.name] = value
+    end
 
     return nothing
 end
@@ -195,6 +215,30 @@ end
 
 function MOI.set(optimizer::Optimizer, ::WorkDir, ::Nothing)
     delete!(optimizer.aim_attributes, :work_dir)
+
+    return nothing
+end
+
+struct UseGPU <: SAIMAttribute end
+
+function MOI.get(optimizer::Optimizer, ::UseGPU)
+    return get(optimizer.aim_attributes, :use_gpu, SAIM.is_gpu_functional())
+end
+
+function MOI.set(optimizer::Optimizer, ::UseGPU, value::Bool)
+    optimizer.aim_attributes[:use_gpu] = value
+
+    return nothing
+end
+
+struct NumericType <: SAIMAttribute end
+
+function MOI.get(optimizer::Optimizer{T}, ::NumericType) where {T<:Real}
+    return get(optimizer.aim_attributes, :numeric_type, T)
+end
+
+function MOI.set(optimizer::Optimizer, ::NumericType, ::Type{T}) where {T<:Real}
+    optimizer.aim_attributes[:numeric_type] = T
 
     return nothing
 end
