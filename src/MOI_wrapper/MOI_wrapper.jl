@@ -97,6 +97,12 @@ include("objective.jl")
 include("constraints.jl")
 include("solutions.jl")
 
+function MOI.supports(::Optimizer{T}, ::Type{X}, ::Type{Y}) where {T,X,Y}
+    @error("Do not support ($X, $Y)")
+
+    return false
+end
+
 function _copy_attributes!(optimizer, model)
     # Copy attributes
     for attr in MOI.get(model, MOI.ListOfModelAttributesSet())
@@ -142,7 +148,7 @@ function _copy_attributes!(optimizer, model)
                     MOI.set(optimizer, attr, ci, MOI.get(model, attr, ci))
                 end
             else
-                throw(MOI.UnsupportedAttribute(attr))
+                # throw(MOI.UnsupportedAttribute(attr))
             end
         end
     end
