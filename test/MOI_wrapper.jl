@@ -82,6 +82,10 @@ end
 
 end
 
-@testset "MathOptInterface Test Suite" begin
-    SAIMOpt_MOITests.runtests()
+function test_moi()
+    @testset "MathOptInterface Test Suite" begin
+        SAIMOpt_MOITests.runtests()
+    end
+
+    return nothing
 end
