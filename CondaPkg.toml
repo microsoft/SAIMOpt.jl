@@ -1,0 +1,8 @@
+channels = ["anaconda", "conda-forge"]
+
+[deps]
+python = ">=3.10"
+scipy = ">=1.10"
+
+[pip.deps]
+pyaimopt = "@ git+https://msr-optics.visualstudio.com/OpticalCompute/_git/PyAIMOpt"

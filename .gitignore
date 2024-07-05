@@ -7,3 +7,6 @@ Manifest.toml
 /docs/build
 /docs/Manifest.toml
 /test/coverage/Manifest.toml
+
+# PythonCall
+.CondaPkg
