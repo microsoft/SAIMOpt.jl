@@ -43,7 +43,7 @@ function test_qumo_example(config!::Function)
     @test all(yi -> yi ≈ 2 || yi ≈ 3, value.(y))
 
     let inner_model = unsafe_backend(model)
-        @test inner_model.sense === SAIMOpt.SAIM.Maximization
+        @test inner_model.sense === MOI.MAX_SENSE
     end
 
     return nothing

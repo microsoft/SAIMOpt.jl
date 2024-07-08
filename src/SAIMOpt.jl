@@ -1,20 +1,8 @@
 module SAIMOpt
 
 import TOML
-import SAIM
 import MathOptInterface as MOI
 import MathOptInterface: is_empty, empty!, optimize!
-import PythonCall
-
-# const azure_identity = PythonCall.pynew()
-const pyaimopt = PythonCall.pynew()
-
-function __init__()
-    # PythonCall.pycopy!(azure_identity, PythonCall.pyimport("azure.identity"))
-    PythonCall.pycopy!(pyaimopt, PythonCall.pyimport("pyaimopt"))
-
-    return nothing
-end
 
 using LinearAlgebra
 
@@ -34,5 +22,6 @@ const SQF{T}  = MOI.ScalarQuadraticFunction{T}
 
 include("variables/variables.jl")
 include("MOI_wrapper/MOI_wrapper.jl")
+include("service.jl")
 
 end # module SAIMOpt

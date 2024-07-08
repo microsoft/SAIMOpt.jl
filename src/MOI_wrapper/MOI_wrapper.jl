@@ -8,7 +8,7 @@ is how we can build a solver that can be used by JuMP models.
 using JuMP
 using SAIMOpt
 
-model = Model(SAIM.Optimizer)
+model = Model(SAIMOpt.Optimizer)
 
 @variable(model, x[1:5], Bin)
 @variable(model, -2 <= y[1:5] <= 2)
@@ -19,7 +19,7 @@ optimize!(model)
 ```
 """
 mutable struct Optimizer{T} <: MOI.AbstractOptimizer
-    sense::SAIM.Direction
+    sense::MOI.OptimizationSense
 
     quadratic::Matrix{T}
     linear::Union{Vector{T},Nothing}
@@ -39,7 +39,7 @@ mutable struct Optimizer{T} <: MOI.AbstractOptimizer
 
     function Optimizer{T}() where {T}
         return new{T}(
-            SAIM.Minimization,      # sense
+            MOI.MIN_SENSE,          # sense
             Matrix{T}(undef, 0, 0), # quadratic
             nothing,                # linear
             zero(T),                # offset
@@ -64,7 +64,7 @@ mutable struct Optimizer{T} <: MOI.AbstractOptimizer
 end
 
 function MOI.empty!(optimizer::Optimizer{T}) where {T}
-    optimizer.sense      = SAIM.Minimization
+    optimizer.sense      = MOI.MIN_SENSE
     optimizer.quadratic  = Matrix{T}(undef, 0, 0)
     optimizer.linear     = nothing
     optimizer.offset     = zero(T)
@@ -90,6 +90,16 @@ end
 
 function Base.show(io::IO, ::Optimizer)
     return print(io, "SAIM Optimizer")
+end
+
+abstract type SAIMBackend end
+
+struct Local <: SAIMBackend end
+
+struct Service <: SAIMBackend end
+
+function solve!(::B, ::Optimizer) where {B<:SAIMBackend}
+    error("'$B' backend is not available.")
 end
 
 include("attributes.jl")
@@ -363,48 +373,9 @@ function _parse_objective(
 end
 
 function MOI.optimize!(optimizer::Optimizer{T}) where {T<:Real}
-    seed       = something(MOI.get(optimizer, SAIMOpt.Seed()), trunc(Int, time()))
-    time_limit = trunc(Int, something(MOI.get(optimizer, MOI.TimeLimitSec()), 10.0))
-    work_dir   = MOI.get(optimizer, SAIMOpt.WorkDir())
-    use_gpu    = MOI.get(optimizer, SAIMOpt.UseGPU())
-    num_type   = MOI.get(optimizer, SAIMOpt.NumericType())
+    backend = MOI.get(optimizer, SAIMOpt.Backend())
 
-    if use_gpu
-        if SAIM.is_gpu_functional()
-            if num_type === Float64
-                @warn "Changing 'numeric_type' to Float32 to run on the GPU"
-                num_type = Float32
-            end
-
-            SAIM.Solver.SetDefaultBackEndToGpu()
-        else
-            error("GPU is not functional")
-        end
-    else # !use_gpu
-        SAIM.Solver.SetDefaultBackEndToCpu()
-    end
-
-    quadratic = convert.(num_type, -optimizer.quadratic)
-    linear    = convert.(num_type, -optimizer.linear)
-
-    output = SAIM.API.SolverAPI.compute_qumo(
-        optimizer.sense,
-        quadratic,
-        linear,
-        optimizer.continuous,
-        seed,
-        time_limit;
-        work_dir,
-    )
-
-    optimizer.output = if T === num_type
-        output
-    else
-        Dict(
-            "Objective"  => convert(T, output["Objective"]),
-            "Assignment" => convert.(T, output["Assignment"]),
-        )
-    end
+    solve!(backend, optimizer)
 
     return nothing
 end

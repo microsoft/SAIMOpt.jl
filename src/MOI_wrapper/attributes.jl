@@ -91,30 +91,17 @@ function MOI.supports(::Optimizer, ::MOI.SolutionLimit)
     return false
 end
 
-
 function MOI.get(optimizer::Optimizer, attr::MOI.RawOptimizerAttribute)
-    if attr.name == "seed"
-        return MOI.get(optimizer, SAIMOpt.Seed())
-    elseif attr.name == "work_dir"
-        return MOI.get(optimizer, SAIMOpt.WorkDir())
-    elseif attr.name == "use_gpu"
-        return MOI.get(optimizer, SAIMOpt.UseGPU())
-    elseif attr.name == "numeric_type"
-        return MOI.get(optimizer, SAIMOpt.NumericType())
+    if haskey(SAIM_RAW_ATTRIBUTES, attr.name)
+        return MOI.get(optimizer, SAIM_RAW_ATTRIBUTES[attr.name])
     else
         return optimizer.raw_attributes[attr.name]
     end
 end
 
 function MOI.set(optimizer::Optimizer, attr::MOI.RawOptimizerAttribute, value::Any)
-    if attr.name == "seed"
-        MOI.set(optimizer, SAIMOpt.Seed(), value)
-    elseif attr.name == "work_dir"
-        MOI.set(optimizer, SAIMOpt.WorkDir(), value)
-    elseif attr.name == "use_gpu"
-        MOI.set(optimizer, SAIMOpt.UseGPU(), value)
-    elseif attr.name == "numeric_type"
-        MOI.set(optimizer, SAIMOpt.NumericType(), value)
+    if haskey(SAIM_RAW_ATTRIBUTES, attr.name)
+        return MOI.set(optimizer, SAIM_RAW_ATTRIBUTES[attr.name], value)
     else
         optimizer.raw_attributes[attr.name] = value
     end
@@ -123,7 +110,7 @@ function MOI.set(optimizer::Optimizer, attr::MOI.RawOptimizerAttribute, value::A
 end
 
 function MOI.supports(::Optimizer, attr::MOI.RawOptimizerAttribute)
-    return true # attr ∈ SAIM_RAW_ATTRIBUTES
+    return true # haskey(SAIM_RAW_ATTRIBUTES, attr.name)
 end
 
 
@@ -221,8 +208,12 @@ end
 
 struct UseGPU <: SAIMAttribute end
 
+_default_use_gpu(::SAIMBackend) = false
+
 function MOI.get(optimizer::Optimizer, ::UseGPU)
-    return get(optimizer.aim_attributes, :use_gpu, SAIM.is_gpu_functional())
+    backend = MOI.get(optimizer, Backend())
+
+    return get(optimizer.aim_attributes, :use_gpu, _default_use_gpu(backend))
 end
 
 function MOI.set(optimizer::Optimizer, ::UseGPU, value::Bool)
@@ -242,3 +233,37 @@ function MOI.set(optimizer::Optimizer, ::NumericType, ::Type{T}) where {T<:Real}
 
     return nothing
 end
+
+struct Precision <: SAIMAttribute end
+
+function MOI.get(optimizer::Optimizer, ::Precision)
+    return get(optimizer.aim_attributes, :precision, "Float32")
+end
+
+function MOI.set(optimizer::Optimizer, ::Precision, value::String)
+    @assert value ∈ ("BFloat16", "Float16", "Float32", "Float64")
+
+    optimizer.aim_attributes[:precision] = value
+
+    return nothing
+end
+
+struct Backend <: SAIMAttribute end
+
+function MOI.get(optimizer::Optimizer, ::Backend)
+    return get(optimizer.aim_attributes, :backend, SAIMOpt.Service())
+end
+
+function MOI.set(optimizer::Optimizer, ::Backend, value::B) where {B<:SAIMBackend}
+    optimizer.aim_attributes[:backend] = value
+
+    return nothing
+end
+
+const SAIM_RAW_ATTRIBUTES = Dict{String,Any}(
+    "seed"         => SAIMOpt.Seed(),
+    "work_dir"     => SAIMOpt.WorkDir(),
+    "use_gpu"      => SAIMOpt.UseGPU(),
+    "numeric_type" => SAIMOpt.NumericType(),
+    "backend"      => SAIMOpt.Backend(),
+)
