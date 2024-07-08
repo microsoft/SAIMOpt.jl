@@ -29,12 +29,17 @@ function __auth__()::Bool
     return __IS_AUTH__[]
 end
 
-function __init__()
-    PythonCall.pycopy!(np, pyimport("numpy"))
-    PythonCall.pycopy!(json, pyimport("json"))
+const np                 = PythonCall.pynew()
+const json               = PythonCall.pynew()
+const pyaimopt           = PythonCall.pynew()
+const pyaimopt_workspace = PythonCall.pynew()
 
-    PythonCall.pycopy!(pyaimopt, pyimport("pyaimopt"))
-    PythonCall.pycopy!(pyaimopt_workspace, pyimport("pyaimopt.workspace"))
+function __init__()
+    PythonCall.pycopy!(np, PythonCall.pyimport("numpy"))
+    PythonCall.pycopy!(json, PythonCall.pyimport("json"))
+
+    PythonCall.pycopy!(pyaimopt, PythonCall.pyimport("pyaimopt"))
+    PythonCall.pycopy!(pyaimopt_workspace, PythonCall.pyimport("pyaimopt.workspace"))
 
     # Authenticate here, at load time, to avoid having to do it at run time.
     # This improves the user experience by prompting the user when the package
@@ -60,8 +65,8 @@ function SAIMOpt.solve!(::SAIMOpt.Service, optimizer::SAIMOpt.Optimizer{T}) wher
     # Instantiate solver
     workspace = pyaimopt.create_azure_workspace()
     solver    = pyaimopt.Solver(workspace)
-    precision = pygetattr(pyaimopt.Precision, pystr(_precision))
-    timeout   = pyint(ceil(Int, something(_timeout, 5)))
+    precision = PythonCall.pygetattr(pyaimopt.Precision, PythonCall.pystr(_precision))
+    timeout   = PythonCall.pyint(ceil(Int, something(_timeout, 5)))
 
     solver.set_precision(precision)
 
@@ -80,7 +85,7 @@ function SAIMOpt.solve!(::SAIMOpt.Service, optimizer::SAIMOpt.Optimizer{T}) wher
     job_status = results.value
 
     if !is_job_ok(job_status)
-        error("Job failed: $(pystr(job_status))")
+        error("Job failed: $(PythonCall.pystr(job_status))")
     end
 
     job_result = job_status.result
