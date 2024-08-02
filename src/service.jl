@@ -1,5 +1,7 @@
 module SAIMOptService
 
+using LinearAlgebra
+
 import PythonCall
 import JSON
 import MathOptInterface as MOI
@@ -90,7 +92,7 @@ function SAIMOpt.solve!(::SAIMOpt.Service, optimizer::SAIMOpt.Optimizer{T}) wher
 
     job_result = job_status.result
 
-    x = PythonCall.pyconvert.(T, job_result.output)
+    x = PythonCall.pyconvert.(Vector{T}, job_result.output)
     λ = x'Q * x + ℓ'x + c
 
     output = Dict(

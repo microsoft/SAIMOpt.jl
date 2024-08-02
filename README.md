@@ -17,7 +17,7 @@ TODO: Guide users through getting your code up and running on their own system. 
 
 CFS onboarding required configuring your project to only consume packages through Azure Artifacts. This is an engineering system standard which is required company-wide.
 
-1. If your project uses NuGet packages, update the nuget.config file placed at the root of this reposiroty to use your preferred feed.
+1. If your project uses NuGet packages, update the nuget.config file placed at the root of this repository to use your preferred feed.
 2. If your project uses npm packages, consult [this section of the CFS documentation](https://aka.ms/cfs). Feel free to delete the nuget.config file in this repository.
 3. If your project uses Maven packages, consult [this section of the CFS documentation](https://aka.ms/cfs). Feel free to delete the nuget.config file in this repository.
 4. If your project uses Pip packages, consult [this section of the CFS documentation](https://aka.ms/cfs). Feel free to delete the nuget.config file in this repository.
