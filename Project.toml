@@ -1,7 +1,7 @@
 name = "SAIMOpt"
 uuid = "1b07576f-21f8-4ab0-8f8b-5c1cf22a7bd4"
 authors = ["Christos Gkantsidis <chrisgk@microsoft.com>", "Pedro Maciel Xavier <t-pedroma@microsoft.com>"]
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
