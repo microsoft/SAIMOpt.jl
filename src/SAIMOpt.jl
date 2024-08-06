@@ -23,5 +23,6 @@ const SQF{T}  = MOI.ScalarQuadraticFunction{T}
 include("variables/variables.jl")
 include("MOI_wrapper/MOI_wrapper.jl")
 include("service.jl")
+include("random_assignment.jl")
 
 end # module SAIMOpt

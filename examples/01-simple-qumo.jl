@@ -9,6 +9,7 @@ using Revise
 using JuMP
 # On first invocation the following takes a while to complete as it initializes
 # a python environment to talk to the service. After that, it takes a few seconds.
+# In case of errors, please try again, and if necessary delete the local ".CondaPkg" directory.
 using SAIMOpt
 
 model = Model(SAIMOpt.Optimizer)

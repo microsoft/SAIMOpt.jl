@@ -25,3 +25,9 @@ Manifest.toml
 
 # PythonCall
 .CondaPkg
+
+# files installed with commitizen
+node_modules/
+package.json
+package-lock.json
+pnpm-lock.yaml

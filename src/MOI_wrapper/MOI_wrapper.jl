@@ -240,7 +240,7 @@ function MOI.copy_to(optimizer::Optimizer{T}, model::MOI.ModelLike) where {T}
 
             optimizer.variable_info[vi] = v
         end
-        
+
         index_map[ci] = ci
     end
 
