@@ -1,6 +1,10 @@
 #=
 02-random-assignment.jl
 
+Simple example of changing the backend solver to use a basic solver
+that assigns random values from the domain of each variable.
+(Maybe useful for debugging and testing.)
+
 =#
 
 using Revise
