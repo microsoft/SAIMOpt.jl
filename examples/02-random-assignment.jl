@@ -15,6 +15,7 @@ model = Model(SAIMOpt.Optimizer)
 @variable(model, -1 <= z <= 5)
 @objective(model, Min, x + y * z)
 
+# TODO: is there a better way to access `backend(model).optimizer.model.optimizer`?
 MOI.set(backend(model).optimizer.model.optimizer, SAIMOpt.Backend(), SAIMOpt.RandomAssignment())
 optimize!(model)
 
