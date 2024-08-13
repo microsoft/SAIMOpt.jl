@@ -31,8 +31,16 @@ function SAIMOpt.solve!(::SAIMOpt.Local, optimizer::SAIMOpt.Optimizer{T}) where 
     quadratic = convert.(num_type, -optimizer.quadratic)
     linear    = convert.(num_type, -optimizer.linear)
 
+    if optimizer.sense === MOI.MIN_SENSE
+        sense = SAIM.Minimization
+    elseif optimizer.sense === MOI.MAX_SENSE
+        sense = SAIM.Maximization
+    else
+        error("Unknown sense $(optimizer.sense)")
+    end
+
     output = SAIM.API.SolverAPI.compute_qumo(
-        optimizer.sense,
+        sense,
         quadratic,
         linear,
         optimizer.continuous,
