@@ -17,10 +17,10 @@ function test_conversions()
         MOI.set(backend(model).optimizer.model.optimizer, SAIMOpt.Backend(), SAIMOpt.RandomAssignment())
         optimize!(model)
 
-        @assert value(x) ∈ [0, 1]
-        @assert value(y) ∈ [0, 1]
-        @assert -1 ≤ value(z) ≤ 5
-        @assert objective_value(model) ≈ value(x) + value(y) * value(z)
+        @test value(x) ∈ [0, 1]
+        @test value(y) ∈ [0, 1]
+        @test -1 ≤ value(z) ≤ 5
+        @test objective_value(model) ≈ value(x) + value(y) * value(z)
     end
 
     return nothing

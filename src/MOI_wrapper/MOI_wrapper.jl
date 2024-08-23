@@ -288,8 +288,6 @@ function MOI.copy_to(optimizer::Optimizer{T}, model::MOI.ModelLike) where {T}
         optimizer.quadratic = A' * Q * A
         optimizer.linear    = vec(b' * Q * A + ℓ' * A)
         optimizer.offset    = c + b' * Q * b + ℓ' * b
-
-        @debug "Offset is $(optimizer.offset)"
     end
 
     return index_map
