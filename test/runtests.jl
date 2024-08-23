@@ -24,6 +24,7 @@ function test_aqua()
     return nothing
 end
 
+include("test_conversions.jl")
 include("MOI_wrapper.jl")
 
 function test_qumo_example(config!::Function)
@@ -91,6 +92,7 @@ function main()
             test_moi()
         end
 
+        test_conversions()
         test_examples()
     end
 

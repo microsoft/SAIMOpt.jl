@@ -1,3 +1,14 @@
+#=
+constraints.jl
+
+Specifies the constraints supported by the optimizer.
+At this low level, we only support the following constraints:
+- Binary variables
+- Continuous variables with lower and upper bounds.
+  Observe that both need to be specified (i.e., no unbounded variables).
+=#
+
+"""Optimizer supports binary variables"""
 function MOI.supports_constraint(
     ::Optimizer,
     ::Type{VI},
@@ -6,6 +17,7 @@ function MOI.supports_constraint(
     return true
 end
 
+"""Optimizer supports continuous variables with lower and upper bounds"""
 function MOI.supports_constraint(
     ::Optimizer{T},
     ::Type{VI},
@@ -14,6 +26,7 @@ function MOI.supports_constraint(
     return true
 end
 
+"""Optimizer does not support generic constraints"""
 function MOI.supports_constraint(
     ::Optimizer,
     ::Type{S},

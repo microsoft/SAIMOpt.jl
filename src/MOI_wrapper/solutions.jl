@@ -34,6 +34,7 @@ function MOI.get(optimizer::Optimizer, ::MOI.TerminationStatus)
     end
 end
 
+MOI.supports(::Optimizer, ::MOI.VariablePrimal, ::VI) = true
 function MOI.get(optimizer::Optimizer, vp::MOI.VariablePrimal, vi::VI)
     @assert 1 <= vp.result_index <= MOI.get(optimizer, MOI.ResultCount())
 
@@ -53,16 +54,9 @@ function MOI.get(optimizer::Optimizer, vp::MOI.VariablePrimal, vi::VI)
     end
 end
 
-function MOI.supports(::Optimizer, ::MOI.VariablePrimal, ::VI)
-    return true
-end
-
+MOI.supports(::Optimizer, ::MOI.ObjectiveValue) = true
 function MOI.get(optimizer::Optimizer, ov::MOI.ObjectiveValue)
     @assert 1 <= ov.result_index <= MOI.get(optimizer, MOI.ResultCount())
 
     return optimizer.output["Objective"] + optimizer.offset
-end
-
-function MOI.supports(::Optimizer, ::MOI.ObjectiveValue)
-    return true
 end
