@@ -167,6 +167,8 @@ function _copy_attributes!(optimizer, model)
 end
 
 function MOI.copy_to(optimizer::Optimizer{T}, model::MOI.ModelLike) where {T}
+    @debug "Copying model for AOC/AIM optimizer"
+
     index_map = MOIU.IndexMap()
 
     _copy_attributes!(optimizer, model)
@@ -278,19 +280,22 @@ function MOI.copy_to(optimizer::Optimizer{T}, model::MOI.ModelLike) where {T}
             f,
             optimizer.variable_map,
             optimizer.fixed,
+            optimizer.continuous
         )
 
         A, b = _scaling(optimizer.variable_info, optimizer.variable_map)
 
         optimizer.quadratic = A' * Q * A
-        optimizer.linear    = 2 * A * Q * b + A * ℓ
+        optimizer.linear    = vec(b' * Q * A + ℓ' * A)
         optimizer.offset    = c + b' * Q * b + ℓ' * b
+
+        @debug "Offset is $(optimizer.offset)"
     end
 
     return index_map
 end
 
-function _parse_objective(vi::VI, vmap::Dict{VI,Int}, fixed::Dict{VI,T}) where {T}
+function _parse_objective(vi::VI, vmap::Dict{VI,Int}, fixed::Dict{VI,T}, ::Vector{Bool}) where {T}
     n = length(vmap)
 
     Q = zeros(T, n, n)
@@ -310,6 +315,7 @@ function _parse_objective(
     f::SAF{T},
     vmap::Dict{VI,Int},
     fixed::Dict{VI,T},
+    ::Vector{Bool}
 ) where {T}
     n = length(vmap)
 
@@ -335,6 +341,7 @@ function _parse_objective(
     f::SQF{T},
     vmap::Dict{VI,Int},
     fixed::Dict{VI,T},
+    continuous::Vector{Bool}
 ) where {T}
     n = length(vmap)
 
@@ -353,6 +360,8 @@ function _parse_objective(
         end
     end
 
+    # Recall that the expression to optimize is -0.5 * x' * Q * x - ℓ' * x,
+    # i.e., there is a factor of 0.5 in the quadratic term.
     for term in f.quadratic_terms
         vi  = term.variable_1
         vj  = term.variable_2
@@ -365,7 +374,24 @@ function _parse_objective(
         elseif haskey(fixed, vj)
             ℓ[vmap[vi]] += qij * fixed[vj]
         else
-            Q[vmap[vi], vmap[vj]] += qij
+            # neither is fixed
+            i = vmap[vi]
+            j = vmap[vj]
+
+            if continuous[i] || continuous[j]
+                if i == j
+                    Q[i, j] += T(2.0) * qij
+                else
+                    Q[i, j] += qij
+                    Q[j, i] += qij
+                end
+            elseif i == j
+                # both are binary, so we move the term to the linear part
+                ℓ[i] += qij
+            else
+                Q[i, j] += qij
+                Q[j, i] += qij
+            end
         end
     end
 

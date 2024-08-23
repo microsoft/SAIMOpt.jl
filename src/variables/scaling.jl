@@ -36,11 +36,11 @@ function _scaling(l::V, u::V, L::V, U::V) where {T,V<:AbstractVector{T}}
     @assert all(u .> l)
     @assert all(U .> L)
 
-    v = (U - L) ./ (u - l)
-    A = Diagonal(v)
-    b = L - l .* v
+    S = (u - l) ./ (U - L)
+    M = (u+l) / T(2) - S .* (U + L) / T(2)
+    A = Diagonal(S)
 
-    return (A, b)
+    return (A, M)
 end
 
 function _scaling(info::VariableInfo{T}, vmap::Dict{VI,Int}) where {T}

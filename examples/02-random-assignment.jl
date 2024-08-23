@@ -11,6 +11,7 @@ using Revise
 using JuMP
 using MathOptInterface
 using LinearAlgebra
+# ENV["JULIA_DEBUG"] = "SAIMOpt"
 using SAIMOpt
 
 model = Model(SAIMOpt.Optimizer)
@@ -25,5 +26,4 @@ optimize!(model)
 
 value.([x, y, z])
 
-# BUG: The objective value should return the value of the original objective, and not of the transformed problem.
-@assert objective_value(model) == value(x) + value(y) * value(z)
+@assert objective_value(model) ≈ value(x) + value(y) * value(z)
