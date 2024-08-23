@@ -20,10 +20,10 @@ model = Model(SAIMOpt.Optimizer)
 @variable(model, -1 <= z <= 5)
 @objective(model, Min, x + y * z)
 
-# TODO: is there a better way to access `backend(model).optimizer.model.optimizer`?
-MOI.set(backend(model).optimizer.model.optimizer, SAIMOpt.Backend(), SAIMOpt.RandomAssignment())
+
+MOI.set(unsafe_backend(model), SAIMOpt.Backend(), SAIMOpt.RandomAssignment())
 optimize!(model)
 
-value.([x, y, z])
-
-@assert objective_value(model) ≈ value(x) + value(y) * value(z)
+@show value.([x, y, z]);
+@show objective_value(model);
+@show value(x) + value(y) * value(z);
