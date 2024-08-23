@@ -92,6 +92,7 @@ function main()
             test_moi()
         end
 
+        test_conversions()
         test_examples()
     end
 
