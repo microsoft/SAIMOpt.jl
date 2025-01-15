@@ -17,6 +17,7 @@ SAIM = "3ec39246-dd42-411e-9907-e6143582e47b"
 SAIMExt = "SAIM"
 
 [compat]
+JSON = "0.21"
 LinearAlgebra = "1"
 MathOptInterface = "1"
 SAIM = ">=0.6"
