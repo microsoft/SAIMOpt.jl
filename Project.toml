@@ -19,6 +19,7 @@ SAIMExt = "SAIM"
 [compat]
 LinearAlgebra = "1"
 MathOptInterface = "1"
+PythonCall = "0.9"
 SAIM = ">=0.6"
 TOML = "1"
 julia = "1.9"
